@@ -72,8 +72,7 @@ public class CRUDProducts extends HttpServlet {
     }
 
     @Override
-    protected void doPut(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        myjson = new JSONObject(request.getReader().lines().collect(Collectors.joining(System.lineSeparator())));
+    protected void doPut(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {   
         try {
             update(DBConnection.getConnection(), request, response);
         } catch (ClassNotFoundException ex) {
@@ -101,7 +100,7 @@ public class CRUDProducts extends HttpServlet {
                 JSONObject json = new JSONObject();
                 String imgName = rs.getString("product_img_name");
                 for (int i = 1; i < rsmd.getColumnCount(); i++) {
-                    json.put(rsmd.getColumnLabel(i), rs.getObject(i)).put("status", 200).put("img_name",imgName);
+                    json.put(rsmd.getColumnLabel(i), rs.getObject(i)).put("status", 200).put("img_name", imgName);
                     System.out.println("JSON->" + json);
                 }
                 myjsonarray.put(json);
@@ -154,26 +153,42 @@ public class CRUDProducts extends HttpServlet {
         out.print(myjson.toString());
     }
 
-    private void update(Connection connection, HttpServletRequest request, HttpServletResponse response) throws IOException {
-        PropsManager myprops = PropsManager.getInstance();
-        PreparedStatement mySt = null;
-        String updateproduct = myprops.getProps("updateproduct");
+    private void update(Connection connection, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
+        System.out.println("Entrando al metodo para modificar un producto");
+        Part file = request.getPart("file");
+        //Importamos los campos
+        String title = request.getParameter("title");
+        String description = request.getParameter("description");
+        Integer user_id = Integer.parseInt(request.getParameter("user_id"));
+        Integer product_id = Integer.parseInt(request.getParameter("product_id"));
+        Integer stock = Integer.parseInt(request.getParameter("stock"));
+        Float price = Float.parseFloat(request.getParameter("price"));
+        JSONObject myjson = new JSONObject();
+        PreparedStatement stmt = null;
+        PropsManager props = PropsManager.getInstance();
+        String updateproduct = props.getProps("updateproduct");
         PrintWriter out = response.getWriter();
+        HttpSession mySession;
         try {
-            mySt = connection.prepareStatement(updateproduct);
-            mySt.setString(1, myjson.getString("product_title"));
-            mySt.setString(2, myjson.getString("product_description"));
-            mySt.setInt(3, myjson.getInt("product_stock"));
-            mySt.setBigDecimal(4, myjson.getBigDecimal("product_price"));
-            mySt.setInt(5, myjson.getInt("product_id"));
-            mySt.setInt(6, myjson.getInt("product_stock"));
-            mySt.executeUpdate(); //use if no data will be returned... else use, executeQuery();
-            System.out.println("Modificado con exito");
+            mySession = request.getSession();
+            stmt = connection.prepareStatement(updateproduct);
+            stmt.setString(1, title);
+            stmt.setString(2, description);
+            stmt.setInt(3, stock);
+            stmt.setFloat(4, price);
+            stmt.setString(5, uploadProductImage(file));
+            stmt.setString(6, this.getFileName(file));
+            stmt.setInt(7, product_id);
+            stmt.setInt(8, user_id);
+            System.out.println("Este es el query del add product ---->" + stmt.toString());
+            stmt.executeUpdate();
+            System.out.println("Agregado con exito a la Base de datos");
             myjson.put("status", 200);
+            //Datos para el userboard
         } catch (SQLException | JSONException e) {
-            System.out.println("ERROR AL CONECTAR... -> " + e.getMessage());
-            myjson.put("success", false);
-        }
+            System.out.println("Error al conectar..." + e.getMessage());
+            myjson.put("status", 404);
+        }//Final del catch
         out.print(myjson.toString());
     }
 
@@ -184,6 +199,7 @@ public class CRUDProducts extends HttpServlet {
         PrintWriter out = response.getWriter();
         PreparedStatement stmt = null;
         String deleteproduct = props.getProps("deleteproduct");
+        JSONObject json = new JSONObject();
         HttpSession mySession;
         //Importamos los campos
         Integer user_id = Integer.parseInt(request.getParameter("user_id"));
@@ -196,12 +212,12 @@ public class CRUDProducts extends HttpServlet {
             System.out.println("Este es el query del delete ---->" + stmt.toString());
             stmt.executeUpdate();
             System.out.println("Eliminado con exito a la Base de datos");
-            myjson.put("status", 200);
+            json.put("status", 200);
         } catch (SQLException | JSONException e) {
             System.out.println("ERROR AL CONECTAR... -> " + e.getMessage());
-            myjson.put("status", 404).put("success", false);
+            json.put("status", 404);
         }
-        out.print(myjson.toString());
+        out.print(json.toString());
     }
 
     protected String uploadProductImage(Part file) throws IOException, ServletException {
