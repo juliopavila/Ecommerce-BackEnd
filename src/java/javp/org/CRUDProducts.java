@@ -73,6 +73,8 @@ public class CRUDProducts extends HttpServlet {
 
     @Override
     protected void doPut(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {   
+        response.setContentType("application/json");
+        myjson = new JSONObject(request.getReader().lines().collect(Collectors.joining(System.lineSeparator())));
         try {
             update(DBConnection.getConnection(), request, response);
         } catch (ClassNotFoundException ex) {
@@ -155,15 +157,14 @@ public class CRUDProducts extends HttpServlet {
 
     private void update(Connection connection, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
         System.out.println("Entrando al metodo para modificar un producto");
-        Part file = request.getPart("file");
         //Importamos los campos
-        String title = request.getParameter("title");
-        String description = request.getParameter("description");
-        Integer user_id = Integer.parseInt(request.getParameter("user_id"));
-        Integer product_id = Integer.parseInt(request.getParameter("product_id"));
-        Integer stock = Integer.parseInt(request.getParameter("stock"));
-        Float price = Float.parseFloat(request.getParameter("price"));
-        JSONObject myjson = new JSONObject();
+        String title = myjson.getString("title");
+        String description = myjson.getString("description");
+        Integer user_id = myjson.getInt("user_id");
+        Integer product_id = myjson.getInt("product_id");
+        Integer stock = myjson.getInt("stock");
+        Float price = Float.parseFloat(myjson.getString("price"));
+        JSONObject json = new JSONObject();
         PreparedStatement stmt = null;
         PropsManager props = PropsManager.getInstance();
         String updateproduct = props.getProps("updateproduct");
@@ -176,20 +177,18 @@ public class CRUDProducts extends HttpServlet {
             stmt.setString(2, description);
             stmt.setInt(3, stock);
             stmt.setFloat(4, price);
-            stmt.setString(5, uploadProductImage(file));
-            stmt.setString(6, this.getFileName(file));
-            stmt.setInt(7, product_id);
-            stmt.setInt(8, user_id);
+            stmt.setInt(5, product_id);
+            stmt.setInt(6, user_id);
             System.out.println("Este es el query del add product ---->" + stmt.toString());
             stmt.executeUpdate();
             System.out.println("Agregado con exito a la Base de datos");
-            myjson.put("status", 200);
+            json.put("status", 200);
             //Datos para el userboard
         } catch (SQLException | JSONException e) {
             System.out.println("Error al conectar..." + e.getMessage());
-            myjson.put("status", 404);
+            json.put("status", 404);
         }//Final del catch
-        out.print(myjson.toString());
+        out.print(json.toString());
     }
 
     private void delete(Connection connection, HttpServletRequest request, HttpServletResponse response) throws IOException {
