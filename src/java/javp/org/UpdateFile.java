@@ -46,10 +46,8 @@ public class UpdateFile extends HttpServlet {
     private void update(Connection connection, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
         System.out.println("Entrando al metodo para modificar una imagen producto");
         Part file = request.getPart("file");
-        System.out.println(""+file);
         //Importamos los campos
         Integer user_id = Integer.parseInt(request.getParameter("user_id"));
-        System.out.println(""+user_id);
         Integer product_id = Integer.parseInt(request.getParameter("product_id"));
         System.out.println(""+product_id);
         JSONObject myjson = new JSONObject();
